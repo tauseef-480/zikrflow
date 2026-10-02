@@ -15,12 +15,26 @@ jobs:
           channel: 'stable'
       - name: Add missing platform folders
         run: flutter create --platforms=android .
-      - name: Ensure a modern Android compileSdk
+      - name: Show generated Android gradle files (debug)
         run: |
           for f in android/app/build.gradle.kts android/app/build.gradle; do
             if [ -f "$f" ]; then
-              sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' "$f" || true
-              sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/' "$f" || true
+              echo "----- $f -----"
+              cat "$f"
+            fi
+          done
+      - name: Force compileSdk to 36
+        run: |
+          for f in android/app/build.gradle.kts android/app/build.gradle; do
+            if [ -f "$f" ]; then
+              echo "Patching $f"
+              if [[ "$f" == *.kts ]]; then
+                sed -i -E "/flutter\.compileSdkVersion/s/.*/    compileSdk = 36/" "$f"
+              else
+                sed -i -E "/flutter\.compileSdkVersion/s/.*/    compileSdk 36/" "$f"
+              fi
+              echo "----- $f after patch -----"
+              grep -n "compileSdk" "$f" || echo "NO compileSdk LINE FOUND"
             fi
           done
       - run: flutter pub get
