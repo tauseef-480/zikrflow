@@ -29,32 +29,32 @@ jobs:
           KTS_ROOT="android/build.gradle.kts"
           if [ -f "$GROOVY_ROOT" ]; then
             echo "Appending global override to $GROOVY_ROOT"
-            cat >> "$GROOVY_ROOT" << 'GRADLE_EOF'
-
-subprojects {
-    afterEvaluate { proj ->
-        if (proj.hasProperty("android")) {
-            proj.android {
-                compileSdkVersion 36
-            }
-        }
-    }
-}
-GRADLE_EOF
+            {
+              echo ""
+              echo "subprojects {"
+              echo "    afterEvaluate { proj ->"
+              echo "        if (proj.hasProperty(\"android\")) {"
+              echo "            proj.android {"
+              echo "                compileSdkVersion 36"
+              echo "            }"
+              echo "        }"
+              echo "    }"
+              echo "}"
+            } >> "$GROOVY_ROOT"
             echo "----- $GROOVY_ROOT after patch -----"
             cat "$GROOVY_ROOT"
           elif [ -f "$KTS_ROOT" ]; then
             echo "Appending global override to $KTS_ROOT"
-            cat >> "$KTS_ROOT" << 'GRADLE_EOF'
-
-subprojects {
-    afterEvaluate {
-        extensions.findByName("android")?.let { ext ->
-            (ext as com.android.build.gradle.BaseExtension).compileSdkVersion(36)
-        }
-    }
-}
-GRADLE_EOF
+            {
+              echo ""
+              echo "subprojects {"
+              echo "    afterEvaluate {"
+              echo "        extensions.findByName(\"android\")?.let { ext ->"
+              echo "            (ext as com.android.build.gradle.BaseExtension).compileSdkVersion(36)"
+              echo "        }"
+              echo "    }"
+              echo "}"
+            } >> "$KTS_ROOT"
             echo "----- $KTS_ROOT after patch -----"
             cat "$KTS_ROOT"
           else
