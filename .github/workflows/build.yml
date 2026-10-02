@@ -15,6 +15,14 @@ jobs:
           channel: 'stable'
       - name: Add missing platform folders
         run: flutter create --platforms=android .
+      - name: Ensure a modern Android compileSdk
+        run: |
+          for f in android/app/build.gradle.kts android/app/build.gradle; do
+            if [ -f "$f" ]; then
+              sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' "$f" || true
+              sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/' "$f" || true
+            fi
+          done
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
