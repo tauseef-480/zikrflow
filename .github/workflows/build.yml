@@ -1,0 +1,68 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Add missing platform folders
+        run: flutter create --platforms=android .
+      - name: Show generated Android root build file (debug)
+        run: |
+          for f in android/build.gradle android/build.gradle.kts; do
+            if [ -f "$f" ]; then
+              echo "----- $f -----"
+              cat "$f"
+            fi
+          done
+      - name: Force compileSdk 36 for every Android subproject (app + plugins)
+        run: |
+          GROOVY_ROOT="android/build.gradle"
+          KTS_ROOT="android/build.gradle.kts"
+          if [ -f "$GROOVY_ROOT" ]; then
+            echo "Appending global override to $GROOVY_ROOT"
+            cat >> "$GROOVY_ROOT" << 'GRADLE_EOF'
+
+subprojects {
+    afterEvaluate { proj ->
+        if (proj.hasProperty("android")) {
+            proj.android {
+                compileSdkVersion 36
+            }
+        }
+    }
+}
+GRADLE_EOF
+            echo "----- $GROOVY_ROOT after patch -----"
+            cat "$GROOVY_ROOT"
+          elif [ -f "$KTS_ROOT" ]; then
+            echo "Appending global override to $KTS_ROOT"
+            cat >> "$KTS_ROOT" << 'GRADLE_EOF'
+
+subprojects {
+    afterEvaluate {
+        extensions.findByName("android")?.let { ext ->
+            (ext as com.android.build.gradle.BaseExtension).compileSdkVersion(36)
+        }
+    }
+}
+GRADLE_EOF
+            echo "----- $KTS_ROOT after patch -----"
+            cat "$KTS_ROOT"
+          else
+            echo "WARNING: no root android/build.gradle(.kts) found"
+          fi
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dropload-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
